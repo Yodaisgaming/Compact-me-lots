@@ -1,0 +1,46 @@
+{
+  "name": "compact-me-lots",
+  "version": "0.1.0",
+  "description": "Wrap any agent CLI and bank a cheap /compact while its prompt cache is still warm, so an idle session stays cheap to resume.",
+  "bin": {
+    "compact-me-lots": "bin/cli.js"
+  },
+  "type": "commonjs",
+  "files": [
+    "bin",
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/input.test.js test/state.test.js test/config.test.js test/transcript.test.js test/integration.test.js",
+    "test:unit": "node --test test/input.test.js test/state.test.js test/config.test.js test/transcript.test.js"
+  },
+  "keywords": [
+    "claude",
+    "cli",
+    "pty",
+    "wrapper",
+    "compaction",
+    "prompt-cache",
+    "context",
+    "agent",
+    "llm"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@homebridge/node-pty-prebuilt-multiarch": "0.13.1"
+  },
+  "license": "MIT",
+  "author": "yodaisgaming",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yodaisgaming/compact-me-lots.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yodaisgaming/compact-me-lots/issues"
+  },
+  "homepage": "https://github.com/yodaisgaming/compact-me-lots#readme"
+}
