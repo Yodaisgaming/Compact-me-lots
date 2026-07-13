@@ -2,6 +2,8 @@
 
 Keep an idle agent CLI cheap to resume.
 
+![compact-me-lots banking a compaction on an idle Claude Code session](https://raw.githubusercontent.com/Yodaisgaming/Compact-me-lots/main/docs/demo.svg)
+
 `compact-me-lots` wraps a command like `claude` in a pseudo-terminal and watches it in the background. When the session goes idle while its prompt cache is still warm, it banks a cheap compaction for you: it asks the agent to save its state, waits for that turn to finish, then runs the compact command. When you come back, the cold re-entry pays input cost on a small summary instead of the entire conversation.
 
 You use your terminal exactly as before. The wrapper is transparent.
