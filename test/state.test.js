@@ -11,7 +11,10 @@ const cfg = {
   settleQuietMs: 8000,
   minTurnMs: 10000,
   maxPhaseMs: 300000,
+  useTranscript: true,
 };
+
+const genericCfg = Object.assign({}, cfg, { useTranscript: false, sizeGate: 0 });
 
 function ctx(over) {
   return Object.assign({
@@ -23,6 +26,7 @@ function ctx(over) {
     pendingInput: false,
     lastAssistantAt: 1000,
     hasTranscript: true,
+    hasUserSubmit: true,
     now: 1000000,
   }, over);
 }
@@ -54,9 +58,25 @@ test('small context is left alone', () => {
   assert.equal(decide(m, ctx({ contextTokens: 50000 }), cfg), 'none');
 });
 
-test('a small context with no transcript still proceeds (size gate is transcript-only)', () => {
+test('Claude mode without a transcript never fires (fresh/empty session)', () => {
   const m = createMachine();
-  assert.equal(decide(m, ctx({ hasTranscript: false, contextTokens: null }), cfg), 'save');
+  assert.equal(decide(m, ctx({ hasTranscript: false, contextTokens: null }), cfg), 'none');
+  assert.equal(m.phase, 'watch');
+});
+
+test('Claude mode with an unknown context size defers', () => {
+  const m = createMachine();
+  assert.equal(decide(m, ctx({ contextTokens: null }), cfg), 'none');
+});
+
+test('generic mode never fires before the first real submit', () => {
+  const m = createMachine();
+  assert.equal(decide(m, ctx({ hasTranscript: false, contextTokens: null, hasUserSubmit: false }), genericCfg), 'none');
+});
+
+test('generic mode fires after a real submit', () => {
+  const m = createMachine();
+  assert.equal(decide(m, ctx({ hasTranscript: false, contextTokens: null, hasUserSubmit: true }), genericCfg), 'save');
 });
 
 test('abandoned (idle past grace) is left alone', () => {
@@ -70,6 +90,20 @@ test('save advances to compact only after a NEW completed turn', () => {
   assert.equal(decide(m, ctx({ now: 1015000, lastAssistantAt: 1000 }), cfg), 'none');
   assert.equal(decide(m, ctx({ now: 1016000, lastAssistantAt: 1012000 }), cfg), 'compact');
   assert.equal(m.phase, 'compacting');
+});
+
+test('save cannot fall back to terminal quiet when its transcript disappears', () => {
+  const m = createMachine();
+  assert.equal(decide(m, ctx({ now: 1000000 }), cfg), 'save');
+  assert.equal(decide(m, ctx({ now: 1015000, hasTranscript: false, lastAssistantAt: null }), cfg), 'none');
+  assert.equal(m.phase, 'saving');
+});
+
+test('save requires a timestamp for the new transcript turn', () => {
+  const m = createMachine();
+  assert.equal(decide(m, ctx({ now: 1000000 }), cfg), 'save');
+  assert.equal(decide(m, ctx({ now: 1015000, lastAssistantAt: null }), cfg), 'none');
+  assert.equal(m.phase, 'saving');
 });
 
 test('compacting settles to done after the min-turn floor', () => {

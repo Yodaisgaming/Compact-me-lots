@@ -54,12 +54,25 @@ function waitFor(getOut, needle, timeoutMs) {
   });
 }
 
-test('idle session gets save-state then /compact injected', { skip: !pty }, async () => {
+test('after a submit, an idle session gets save-state then /compact injected', { skip: !pty }, async () => {
   const { term, out } = spawnWrapped();
   try {
     await waitFor(out, 'mock-agent ready', 4000);
+    term.write('do the thing\r');
     await waitFor(out, 'GOT[SAVESTATE_MARKER', 6000);
     await waitFor(out, 'GOT[/compact', 6000);
+  } finally {
+    term.kill();
+  }
+});
+
+test('nothing is injected before the first real submit', { skip: !pty }, async () => {
+  const { term, out } = spawnWrapped();
+  try {
+    await waitFor(out, 'mock-agent ready', 4000);
+    await new Promise((r) => setTimeout(r, 2500));
+    assert.ok(!out().includes('GOT[SAVESTATE_MARKER'),
+      'save prompt must not be injected into a session the user never used\n--- output ---\n' + out());
   } finally {
     term.kill();
   }
