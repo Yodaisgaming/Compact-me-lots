@@ -70,10 +70,12 @@ Key behaviors:
 - **Unsent input is never clobbered.** If text is sitting in the composer, the wrapper waits instead of injecting over it.
 - **It avoids interrupting an active turn.** Injection only happens once the current turn looks complete. In Claude mode this is read precisely from the session transcript (the last turn's stop reason, so a mid-turn tool call is never mistaken for idle). In generic mode it is inferred from a long idle plus terminal quiet, which is a heuristic, so Claude mode is preferred (see Limitations).
 - **Small or abandoned sessions are left alone.** Below a size gate a cold return is already cheap, and a session idle for longer than the grace window is treated as abandoned.
+- **Fresh, unused sessions are never touched.** In Claude mode nothing fires until the session transcript exists with a known context size, and in generic mode nothing fires until you have submitted at least once. This keeps injections away from empty sessions and away from startup dialogs (folder trust, permission prompts) that an injected Enter would otherwise confirm.
+- **Batched keystrokes are handled.** Terminals and multiplexers (tmux, ssh, ConPTY) can deliver text and its Enter in one chunk, and pastes can end with a newline. Chunks are split on Enter boundaries, so a merged submit is recognized instead of being mistaken for an unsent draft.
 
 ### Claude mode vs generic mode
 
-By default the wrapper reads Claude Code's session transcript (`~/.claude/projects/...`) to know the real context size and when a turn has truly completed. Pass `--no-transcript` (or wrap a non-Claude CLI) to fall back to terminal-quiet heuristics with a configurable compact command.
+By default the wrapper reads Claude Code's session transcript (`~/.claude/projects/...`) to know the real context size and when a turn has truly completed. A candidate transcript is only accepted when its records name the wrapper's own working directory, so with several Claude sessions open the wrapper never latches onto a different session's transcript. Discovery re-runs continuously, which also follows Claude Code when it continues in a new session file after a compaction. Pass `--no-transcript` when wrapping a non-Claude CLI to fall back to terminal-quiet heuristics with a configurable compact command.
 
 ## Options
 
@@ -92,7 +94,7 @@ Every option also has a `CML_*` environment variable (`CML_IDLE_MS`, `CML_GRACE_
 
 ## Limitations
 
-- **Generic mode is a heuristic.** Without the Claude transcript it decides "the turn is done" from a long idle plus terminal quiet. An agent that stalls silently mid-turn for the full idle window could in principle be interrupted. Claude mode does not have this problem because it reads the real turn state. Use `--no-transcript` only for non-Claude CLIs.
+- **Generic mode is a heuristic.** Without the Claude transcript it decides "the turn is done" from a long idle plus terminal quiet. An agent that stalls silently mid-turn for the full idle window could in principle be interrupted. It also cannot tell a composer apart from a dialog, so a prompt that appears while you are away could receive the injected Enter. Claude mode has neither problem because it reads the real turn state and stays inert until a transcript exists. Use `--no-transcript` only for non-Claude CLIs, and prefer agents whose idle screens are genuinely quiet.
 - **Injection interleave.** If you start typing in the brief window (~200ms) after an injection begins, the tool cancels its own Enter, so nothing is submitted on your behalf. The already-written prompt text may momentarily interleave with your keystrokes in the composer. If you see that, clear the line and retype. Nothing is sent without a real, uninterrupted Enter.
 
 ## License

@@ -1,6 +1,6 @@
 {
   "name": "compact-me-lots",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Wrap any agent CLI and bank a cheap /compact while its prompt cache is still warm, so an idle session stays cheap to resume.",
   "bin": {
     "compact-me-lots": "bin/cli.js"
