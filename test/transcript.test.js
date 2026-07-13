@@ -5,7 +5,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { slugCandidates, readState } = require('../lib/transcript');
+const { slugCandidates, cwdMarker, fileMatchesCwd, readState } = require('../lib/transcript');
 
 // Fixtures mirror Claude Code's real JSONL: assistant records carry
 // message.stop_reason + message.usage; user records carry tool results or user
@@ -31,6 +31,24 @@ const meta = (t) => ({ type: t });
 test('slug: each :, \\, / and . becomes its own dash', () => {
   assert.equal(slugCandidates('C:\\Users\\dev\\my-app')[0], 'C--Users-dev-my-app');
   assert.equal(slugCandidates('C:\\Users\\dev\\.config\\tool')[0], 'C--Users-dev--config-tool');
+});
+
+test('slug: the primary candidate flattens underscores like Claude Code does', () => {
+  const cands = slugCandidates('C:\\dev\\my_app');
+  assert.equal(cands[0], 'C--dev-my-app');
+  assert.ok(cands.includes('C--dev-my_app'));
+});
+
+test('a transcript is only accepted when its head names the same cwd', () => {
+  const f = tmpFile([{ type: 'user', cwd: 'C:\\dev\\proj', message: { role: 'user' } }]);
+  assert.equal(fileMatchesCwd(f, cwdMarker('C:\\dev\\proj')), true);
+  assert.equal(fileMatchesCwd(f, cwdMarker('C:\\dev\\other')), false);
+});
+
+test('cwd marker matching preserves JSON escaping', () => {
+  const cwd = 'C:\\dev\\a"b';
+  const f = tmpFile([{ type: 'user', cwd, message: { role: 'user' } }]);
+  assert.equal(fileMatchesCwd(f, cwdMarker(cwd)), true);
 });
 
 test('settled TRUE when the last message record is an assistant end_turn', () => {
