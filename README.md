@@ -103,6 +103,12 @@ Every option also has a `CML_*` environment variable (`CML_IDLE_MS`, `CML_GRACE_
 
 ## Changelog
 
+### 0.2.2
+
+- **Fixed: the injected Enter is now delivered reliably.** Under heavy PTY output the delayed Enter could be paste-fused with the prompt body and silently swallowed, leaving the prompt unsent in the composer (observed in the field: 5/5 failed cycles on a session with busy background shells). The Enter now waits for a short output-quiet gap, and in transcript mode delivery is verified against the session transcript: only an appended non-sidechain user record whose content exactly matches the injected text (or its slash-command record) counts. A swallowed Enter is retried up to 3 times; any foreign transcript activity, session-file rotation, or user input aborts the cycle instead.
+- Phase timers now measure from the actual submit, not the body write.
+- Generic mode gets the quiet-gap wait but no blind retries (there is no transcript to verify against).
+
 ### 0.2.1
 
 - **Fixed: a batched backspace run (held key over ssh/tmux/ConPTY arrives as one chunk) now clears the draft counter.** Previously `\x7f\x7f...` was ignored and `\b\b...` was misread as navigation, so an actually-empty composer could keep deferring compaction until the next submit.
