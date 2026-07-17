@@ -29,6 +29,7 @@ Options:
   --no-transcript        Do not read the Claude transcript; rely on terminal
                          quiet time only (use for non-Claude CLIs)
   --verbose, -v          Log decisions to stderr
+  --version, -V          Print the version and exit
   --help, -h             Show this help
 
 All options can also be set via CML_* environment variables (CML_IDLE_MS,
@@ -37,7 +38,11 @@ CML_VERBOSE).
 `;
 
 function main() {
-  const { config, command, help } = buildConfig(process.argv.slice(2), process.env);
+  const { config, command, help, version } = buildConfig(process.argv.slice(2), process.env);
+  if (version) {
+    process.stdout.write(require('../package.json').version + '\n');
+    process.exit(0);
+  }
   if (help) {
     process.stdout.write(HELP);
     process.exit(0);
