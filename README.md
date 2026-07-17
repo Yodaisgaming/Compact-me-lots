@@ -68,12 +68,14 @@ Key behaviors:
 
 - **The idle timer resets on submit, not on keystrokes.** Typing a long note never delays a compaction, because typing does not mean you are about to send before the cache lapses. Only pressing Enter counts as activity.
 - **Unsent input is never clobbered.** If text is sitting in the composer, the wrapper waits instead of injecting over it.
+- **Untrackable input also defers.** The wrapper only sees keystrokes, not the composer itself. Keys that can pull content into the box without it crossing stdin — Up/Down and PgUp/PgDn (history recall, which in Claude Code replaces even a non-empty draft), Ctrl-chords (reverse-search, kill/yank), Tab and Shift+Tab (completion, overlays), bare or Alt-modified Esc, and a bare leading space (voice push-to-talk inserts transcripts internally) — all mark the composer as possibly non-empty until your next real submit. Terminal auto-responses (cursor-position reports, device attributes, OSC replies) are recognized and ignored, so they can never wedge or reset the tracker.
+- **Nothing is ever injected before your first submit.** A freshly launched session can still be showing a trust or permission dialog, and an injected Enter would accept it. The wrapper stays completely inactive until you have sent at least one real message.
 - **It avoids interrupting an active turn.** Injection only happens once the current turn looks complete. In Claude mode this is read precisely from the session transcript (the last turn's stop reason, so a mid-turn tool call is never mistaken for idle). In generic mode it is inferred from a long idle plus terminal quiet, which is a heuristic, so Claude mode is preferred (see Limitations).
 - **Small or abandoned sessions are left alone.** Below a size gate a cold return is already cheap, and a session idle for longer than the grace window is treated as abandoned.
 
 ### Claude mode vs generic mode
 
-By default the wrapper reads Claude Code's session transcript (`~/.claude/projects/...`) to know the real context size and when a turn has truly completed. Pass `--no-transcript` (or wrap a non-Claude CLI) to fall back to terminal-quiet heuristics with a configurable compact command.
+By default the wrapper reads Claude Code's session transcript (`~/.claude/projects/...`) to know the real context size and when a turn has truly completed. The transcript is located by matching the project-dir slug AND verifying that the transcript's own head records name the wrapper's working directory, so with several sessions open it can never latch onto another session's transcript. In Claude mode the wrapper stays inactive until a matching transcript exists — it never silently falls back to guessing. Pass `--no-transcript` to wrap non-Claude CLIs with terminal-quiet heuristics and a configurable compact command.
 
 ## Options
 
@@ -94,6 +96,18 @@ Every option also has a `CML_*` environment variable (`CML_IDLE_MS`, `CML_GRACE_
 
 - **Generic mode is a heuristic.** Without the Claude transcript it decides "the turn is done" from a long idle plus terminal quiet. An agent that stalls silently mid-turn for the full idle window could in principle be interrupted. Claude mode does not have this problem because it reads the real turn state. Use `--no-transcript` only for non-Claude CLIs.
 - **Injection interleave.** If you start typing in the brief window (~200ms) after an injection begins, the tool cancels its own Enter, so nothing is submitted on your behalf. The already-written prompt text may momentarily interleave with your keystrokes in the composer. If you see that, clear the line and retype. Nothing is sent without a real, uninterrupted Enter.
+- **Deferral is conservative on purpose.** Anything the wrapper cannot prove about the composer (a paste it could not parse, a history key, a possible voice transcript) parks the compaction until your next submit. A skipped compaction costs a little money; a wrong injection could submit garbage into your session. There is no safe way to blindly clear an agent CLI's composer from outside (in Claude Code, single Esc does not clear, and double-Esc on an empty composer opens the rewind picker), so the wrapper never tries.
+
+## Changelog
+
+### 0.2.0
+
+- **Fixed: injected Enter could accept a trust/permission dialog on a fresh session.** The wrapper now stays completely inactive until the user has submitted at least once, and Claude mode no longer falls back to terminal heuristics when no transcript is found.
+- **Fixed: a merged `text\r` stdin chunk permanently wedged the input tracker.** Chunks ending in Enter now count as a submit (this happens routinely under session managers, tmux, and ssh buffering).
+- **Fixed: the wrapper could latch another session's transcript.** Transcript candidates are now verified against the cwd recorded in their own head records, an all-non-alphanumerics slug candidate covers paths with underscores, and cross-directory fallback only accepts files created after the wrapper started.
+- **Fixed: the input tracker was blind on Windows Terminal.** ConPTY's win32-input-mode key records (`ESC[Vk;Sc;Uc;Kd;Cs;Rc_`) are now decoded back into chars and keys before classification.
+- **New: history/overlay-capable keys defer compaction.** Up/Down/PgUp/PgDn/Ctrl-chords/Tab/Shift+Tab/Esc can pull untrackable content into the composer (history recall replaces even a non-empty draft in Claude Code); they now mark it possibly-non-empty until the next submit. A bare leading space (voice push-to-talk) does the same. Terminal auto-responses are explicitly recognized and ignored.
+- **Changed: the default save prompt** now also asks the agent to record reusable workflows in docs/skills and to note running background tasks with relaunch instructions, since task handles do not survive compaction.
 
 ## License
 

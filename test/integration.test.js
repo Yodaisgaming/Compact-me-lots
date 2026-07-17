@@ -54,12 +54,25 @@ function waitFor(getOut, needle, timeoutMs) {
   });
 }
 
-test('idle session gets save-state then /compact injected', { skip: !pty }, async () => {
+test('idle session gets save-state then /compact injected after first submit', { skip: !pty }, async () => {
   const { term, out } = spawnWrapped();
   try {
     await waitFor(out, 'mock-agent ready', 4000);
+    term.write('hello\r');
     await waitFor(out, 'GOT[SAVESTATE_MARKER', 6000);
     await waitFor(out, 'GOT[/compact', 6000);
+  } finally {
+    term.kill();
+  }
+});
+
+test('never injects before the user has submitted once (trust-dialog guard)', { skip: !pty }, async () => {
+  const { term, out } = spawnWrapped();
+  try {
+    await waitFor(out, 'mock-agent ready', 4000);
+    await new Promise((r) => setTimeout(r, 2500));
+    assert.ok(!out().includes('GOT[SAVESTATE_MARKER'),
+      'save prompt must not be injected before the first real submit\n--- output ---\n' + out());
   } finally {
     term.kill();
   }
@@ -69,6 +82,7 @@ test('unsent pending input defers compaction', { skip: !pty }, async () => {
   const { term, out } = spawnWrapped();
   try {
     await waitFor(out, 'mock-agent ready', 4000);
+    term.write('hello\r');
     term.write('half typed note');
     await new Promise((r) => setTimeout(r, 2500));
     assert.ok(!out().includes('GOT[SAVESTATE_MARKER'),
