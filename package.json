@@ -13,8 +13,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/input.test.js test/state.test.js test/config.test.js test/transcript.test.js test/integration.test.js",
-    "test:unit": "node --test test/input.test.js test/state.test.js test/config.test.js test/transcript.test.js"
+    "test": "node --test test/input.test.js test/state.test.js test/config.test.js test/transcript.test.js test/wrapper.test.js test/integration.test.js",
+    "test:unit": "node --test test/input.test.js test/state.test.js test/config.test.js test/transcript.test.js test/wrapper.test.js"
   },
   "keywords": [
     "claude",

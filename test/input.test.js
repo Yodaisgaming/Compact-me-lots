@@ -63,6 +63,16 @@ test('batched backspace run clears the whole draft', () => {
   assert.equal(t.pendingInput, false);
 });
 
+test('text fused with a backspace run in one chunk nets out correctly', () => {
+  const t = new InputTracker(0);
+  t.note('abc\x7f\x7f\x7f', 1);
+  assert.equal(t.pendingChars, 0);
+  assert.equal(t.pendingInput, false);
+  t.note('abcd\x7f\x7f', 2);
+  assert.equal(t.pendingChars, 2);
+  assert.equal(t.pendingInput, true);
+});
+
 test('ignore-only chunk with a trailing partial sequence still bumps seq', () => {
   const t = new InputTracker(0);
   const seq = t.seq;
