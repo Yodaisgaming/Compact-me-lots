@@ -52,6 +52,24 @@ test('backspace clears pending back to empty', () => {
   assert.equal(t.pendingInput, false);
 });
 
+test('batched backspace run clears the whole draft', () => {
+  assert.equal(classify('\x7f\x7f\x7f'), 'backspace');
+  assert.equal(classify('\b\b'), 'backspace');
+  const t = new InputTracker(0);
+  t.note('hello', 1);
+  assert.equal(t.pendingInput, true);
+  t.note('\x7f\x7f\x7f\x7f\x7f', 2);
+  assert.equal(t.pendingChars, 0);
+  assert.equal(t.pendingInput, false);
+});
+
+test('ignore-only chunk with a trailing partial sequence still bumps seq', () => {
+  const t = new InputTracker(0);
+  const seq = t.seq;
+  t.note('\x1b[Mabc\x1b[', 1);
+  assert.ok(t.seq > seq);
+});
+
 test('paste marks pending dirty until submit; backspace does not clear it', () => {
   const t = new InputTracker(0);
   t.note('\x1b[200~stuff\x1b[201~', 1);

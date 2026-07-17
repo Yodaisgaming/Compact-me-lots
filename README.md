@@ -103,6 +103,13 @@ Every option also has a `CML_*` environment variable (`CML_IDLE_MS`, `CML_GRACE_
 
 ## Changelog
 
+### 0.2.1
+
+- **Fixed: a batched backspace run (held key over ssh/tmux/ConPTY arrives as one chunk) now clears the draft counter.** Previously `\x7f\x7f...` was ignored and `\b\b...` was misread as navigation, so an actually-empty composer could keep deferring compaction until the next submit.
+- **Fixed: an ignore-only chunk that ends in a partial escape sequence now aborts a pending injected Enter**, closing a narrow gap in the type-during-injection cancel window.
+- **Fixed: the "unsent pending input defers compaction" integration test now actually exercises that gate** (it previously passed via the no-submit gate alone).
+- Removed the unused `segments()` export (superseded by the streaming segmenter in 0.1.1).
+
 ### 0.2.0
 
 - **Fixed: history and overlay keys could let injection fire over untrackable composer content.** Up/Down, PgUp/PgDn, Ctrl-chords, Tab/Shift+Tab, and Esc can pull content into the composer without it crossing stdin (in Claude Code, history recall replaces even a non-empty draft). They now mark the composer possibly-non-empty until the next real submit — in both ANSI and win32-input-mode key encodings.

@@ -82,6 +82,8 @@ test('unsent pending input defers compaction', { skip: !pty }, async () => {
   const { term, out } = spawnWrapped();
   try {
     await waitFor(out, 'mock-agent ready', 4000);
+    term.write('do the thing\r');
+    await new Promise((r) => setTimeout(r, 100));
     term.write('half typed note');
     await new Promise((r) => setTimeout(r, 2500));
     assert.ok(!out().includes('GOT[SAVESTATE_MARKER'),

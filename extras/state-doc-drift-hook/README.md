@@ -27,6 +27,8 @@ Copy `check-state-doc-drift.js` somewhere stable (e.g. `~/.claude/hooks/`), then
 }
 ```
 
+On Windows, write the absolute path instead of `~` (e.g. `node C:/Users/you/.claude/hooks/check-state-doc-drift.js`) - the hook command runs through a shell that does not expand `~` there.
+
 Running sessions snapshot their hook config at startup; the hook takes effect in new sessions. It does not invalidate any session's prompt cache (hooks are not part of the model prompt; a firing only appends to the conversation).
 
 ## Configuration
