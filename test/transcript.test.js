@@ -5,7 +5,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { slugCandidates, readState, recordedCwdMatches } = require('../lib/transcript');
+const { slugCandidates, cwdMarker, fileMatchesCwd, readState } = require('../lib/transcript');
 
 // Fixtures mirror Claude Code's real JSONL: assistant records carry
 // message.stop_reason + message.usage; user records carry tool results or user
@@ -33,18 +33,22 @@ test('slug: each :, \\, / and . becomes its own dash', () => {
   assert.equal(slugCandidates('C:\\Users\\dev\\.config\\tool')[0], 'C--Users-dev--config-tool');
 });
 
-test('slug: an all-non-alphanumerics candidate covers underscores etc.', () => {
-  assert.ok(slugCandidates('C:\\Users\\dev\\my_app').includes('C--Users-dev-my-app'));
+test('slug: the primary candidate flattens underscores like Claude Code does', () => {
+  const cands = slugCandidates('C:\\dev\\my_app');
+  assert.equal(cands[0], 'C--dev-my-app');
+  assert.ok(cands.includes('C--dev-my_app'));
 });
 
-test('recordedCwdMatches accepts only a transcript whose head names our cwd', () => {
-  const here = process.cwd();
-  const match = tmpFile([{ type: 'user', cwd: here }, { type: 'assistant' }]);
-  const other = tmpFile([{ type: 'user', cwd: path.join(here, 'somewhere-else') }]);
-  const noCwd = tmpFile([{ type: 'mode' }, { type: 'user' }]);
-  assert.equal(recordedCwdMatches(match, here), true);
-  assert.equal(recordedCwdMatches(other, here), false);
-  assert.equal(recordedCwdMatches(noCwd, here), false);
+test('a transcript is only accepted when its head names the same cwd', () => {
+  const f = tmpFile([{ type: 'user', cwd: 'C:\\dev\\proj', message: { role: 'user' } }]);
+  assert.equal(fileMatchesCwd(f, cwdMarker('C:\\dev\\proj')), true);
+  assert.equal(fileMatchesCwd(f, cwdMarker('C:\\dev\\other')), false);
+});
+
+test('cwd marker matching preserves JSON escaping', () => {
+  const cwd = 'C:\\dev\\a"b';
+  const f = tmpFile([{ type: 'user', cwd, message: { role: 'user' } }]);
+  assert.equal(fileMatchesCwd(f, cwdMarker(cwd)), true);
 });
 
 test('settled TRUE when the last message record is an assistant end_turn', () => {
