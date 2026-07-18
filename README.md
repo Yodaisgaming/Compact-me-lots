@@ -91,6 +91,7 @@ By default the wrapper reads Claude Code's session transcript (`~/.claude/projec
 | `--save-prompt <text>` | built-in | Prompt injected before compacting to persist state |
 | `--no-transcript` | off | Ignore the Claude transcript; use terminal quiet time only |
 | `--verbose`, `-v` | off | Log decisions to stderr |
+| `--version`, `-V` | | Print the version |
 | `--help`, `-h` | | Show help |
 
 Every option also has a `CML_*` environment variable (`CML_IDLE_MS`, `CML_GRACE_MS`, `CML_SIZE_GATE`, `CML_COMPACT_CMD`, `CML_SAVE_PROMPT`, `CML_NO_TRANSCRIPT`, `CML_VERBOSE`).
