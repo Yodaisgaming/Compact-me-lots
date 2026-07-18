@@ -96,6 +96,8 @@ By default the wrapper reads Claude Code's session transcript (`~/.claude/projec
 
 Every option also has a `CML_*` environment variable (`CML_IDLE_MS`, `CML_GRACE_MS`, `CML_SIZE_GATE`, `CML_COMPACT_CMD`, `CML_SAVE_PROMPT`, `CML_NO_TRANSCRIPT`, `CML_VERBOSE`).
 
+Tune `--size-gate` to the context size where a cold resume actually starts to hurt for you. A good anchor is your own typical post-compact context: if a fresh session settles around, say, 180k tokens, set the gate near there so only sessions large enough to be worth it get banked. The `100000` default is a conservative floor.
+
 ## Limitations
 
 - **Generic mode is a heuristic.** Without the Claude transcript it decides "the turn is done" from a long idle plus terminal quiet. An agent that stalls silently mid-turn for the full idle window could in principle be interrupted. It also cannot tell a composer apart from a dialog, so a prompt that appears while you are away could receive the injected Enter. Claude mode has neither problem because it reads the real turn state and stays inert until a transcript exists. Use `--no-transcript` only for non-Claude CLIs, and prefer agents whose idle screens are genuinely quiet.
