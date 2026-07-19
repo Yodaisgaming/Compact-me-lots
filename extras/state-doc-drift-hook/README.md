@@ -35,7 +35,7 @@ Running sessions snapshot their hook config at startup; the hook takes effect in
 
 | Env var | Default | Meaning |
 | --- | --- | --- |
-| `CML_DRIFT_DOCS` | `TODO.md,NOTES.md,HANDOFF.md,SESSION_LOG.md,USER_REQUESTS.md,LEARNINGS.md` | Comma-separated doc filenames looked up in the project cwd. The hook is inert in projects containing none of them. |
+| `CML_DRIFT_DOCS` | `TODO.md,NOTES.md,HANDOFF.md` | Comma-separated doc filenames looked up in the project cwd. The hook is inert in projects containing none of them. |
 | `CML_DRIFT_BYTES` | `1500000` | Transcript growth since the last doc touch before a reminder is considered |
 | `CML_DRIFT_MIN_TURN_BYTES` | `20000` | Minimum size of the just-ended turn — smaller turns never fire |
 | `CML_DRIFT_COOLDOWN_MS` | `1200000` | Minimum time between reminders per session |

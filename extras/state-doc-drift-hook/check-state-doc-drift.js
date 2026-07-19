@@ -9,7 +9,7 @@ const DRIFT_BYTES = parseInt(process.env.CML_DRIFT_BYTES || '', 10) || 1_500_000
 const MIN_TURN_BYTES = parseInt(process.env.CML_DRIFT_MIN_TURN_BYTES || '', 10) || 20_000;
 const COOLDOWN_MS = parseInt(process.env.CML_DRIFT_COOLDOWN_MS || '', 10) || 20 * 60 * 1000;
 const STATE_DIR = path.join(os.homedir(), '.claude', 'hooks', '.state-doc-drift');
-const DOCS = (process.env.CML_DRIFT_DOCS || 'TODO.md,NOTES.md,HANDOFF.md,SESSION_LOG.md,USER_REQUESTS.md,LEARNINGS.md')
+const DOCS = (process.env.CML_DRIFT_DOCS || 'TODO.md,NOTES.md,HANDOFF.md')
   .split(',').map((d) => d.trim()).filter(Boolean);
 const STATE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 

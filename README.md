@@ -108,7 +108,7 @@ Tune `--size-gate` to the context size where a cold resume actually starts to hu
 
 ### 0.2.2
 
-- **Fixed: the injected Enter is now delivered reliably.** Under heavy PTY output the delayed Enter could be paste-fused with the prompt body and silently swallowed, leaving the prompt unsent in the composer (observed in the field: 5/5 failed cycles on a session with busy background shells). The Enter now waits for a short output-quiet gap, and in transcript mode delivery is verified against the session transcript: only an appended non-sidechain user record whose content exactly matches the injected text (or its slash-command record) counts. A swallowed Enter is retried up to 3 times; any foreign transcript activity, session-file rotation, or user input aborts the cycle instead.
+- **Fixed: the injected Enter is now delivered reliably.** Under heavy PTY output the delayed Enter could be paste-fused with the prompt body and silently swallowed, leaving the prompt unsent in the composer. The Enter now waits for a short output-quiet gap, and in transcript mode delivery is verified against the session transcript: only an appended non-sidechain user record whose content exactly matches the injected text (or its slash-command record) counts. A swallowed Enter is retried up to 3 times; any foreign transcript activity, session-file rotation, or user input aborts the cycle instead.
 - Phase timers now measure from the actual submit, not the body write.
 - Generic mode gets the quiet-gap wait but no blind retries (there is no transcript to verify against).
 
