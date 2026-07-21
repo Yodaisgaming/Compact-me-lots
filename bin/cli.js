@@ -15,13 +15,20 @@ Usage:
 
 Examples:
   compact-me-lots -- claude
+  compact-me-lots --ttl 5m -- claude          # API key / Bedrock / Vertex / Foundry (5-min cache)
   compact-me-lots --idle 240 --verbose -- claude
   compact-me-lots --no-transcript --compact-cmd "/compact" -- some-agent-cli
 
 Options:
-  --idle <seconds>       Idle time before a compaction is banked (default 240)
+  --ttl <5m|1h|seconds>  Prompt-cache lifetime to tune the idle timer to; the idle
+                         and grace windows derive from it. Auto-detected from
+                         Claude Code's cache env vars and auth when unset, and
+                         defaults to 1h (the Claude subscription default). Pass
+                         --ttl 5m on an API key / Bedrock / Vertex / Foundry.
+  --idle <seconds>       Idle time before a compaction is banked
+                         (default: 80% of the TTL - 240 at 5m, 2880 at 1h)
   --grace <seconds>      Past this, the session is treated as abandoned and left
-                         alone (default 1800)
+                         alone (default: 6x the TTL - 1800 at 5m, 21600 at 1h)
   --size-gate <tokens>   Minimum context size worth compacting; only applies in
                          Claude transcript mode (default 100000)
   --compact-cmd <text>   Command injected to compact (default "/compact")
@@ -32,7 +39,7 @@ Options:
   --version, -V          Print the version and exit
   --help, -h             Show this help
 
-All options can also be set via CML_* environment variables (CML_IDLE_MS,
+All options can also be set via CML_* environment variables (CML_TTL, CML_IDLE_MS,
 CML_GRACE_MS, CML_SIZE_GATE, CML_COMPACT_CMD, CML_SAVE_PROMPT, CML_NO_TRANSCRIPT,
 CML_VERBOSE).
 `;

@@ -14,6 +14,8 @@ Agent CLIs keep a rolling prompt cache (the exact window varies by provider and 
 
 Most context tools compact when the window fills up. `compact-me-lots` is different: it fires on **idle plus cache warmth**. If you have walked away and the cache is about to lapse, it compacts now, while it is still cheap, so the return is cheap too.
 
+By default `compact-me-lots` assumes a **1-hour** cache, matching Claude Code's default on a Claude subscription, and tunes its idle timer to fire near the end of that hour. On an API key, Amazon Bedrock, Google Cloud's Agent Platform, or Microsoft Foundry — where Claude Code defaults to a 5-minute cache — pass `--ttl 5m` (or set `CML_TTL=5m`). The tool also auto-detects the common signals (`FORCE_PROMPT_CACHING_5M`, `ENABLE_PROMPT_CACHING_1H`, and the presence of an API key), but that detection is best-effort: it cannot see a mid-session drop from 1 hour to 5 minutes when a subscription goes over its plan limit, so pass `--ttl 5m` explicitly if you know your cache is short.
+
 ## Install
 
 ```sh
@@ -30,6 +32,7 @@ Put the command you normally run after `--`:
 
 ```sh
 compact-me-lots -- claude
+compact-me-lots --ttl 5m -- claude          # API key / Bedrock / Vertex / Foundry (5-min cache)
 compact-me-lots --idle 240 --verbose -- claude
 compact-me-lots --no-transcript --compact-cmd "/compact" -- some-agent-cli
 ```
@@ -84,8 +87,9 @@ By default the wrapper reads Claude Code's session transcript (`~/.claude/projec
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--idle <seconds>` | `240` | Idle time before a compaction is banked |
-| `--grace <seconds>` | `1800` | Past this the session is treated as abandoned and left alone |
+| `--ttl <5m\|1h\|sec>` | `1h`* | Cache lifetime the idle timer tunes to (*auto-detected; see Cache TTL below) |
+| `--idle <seconds>` | `80% of TTL` | Idle time before a compaction is banked (240 at 5m, 2880 at 1h) |
+| `--grace <seconds>` | `6x TTL` | Past this the session is treated as abandoned and left alone (1800 at 5m, 21600 at 1h) |
 | `--size-gate <tokens>` | `100000` | Minimum context size worth compacting (Claude transcript mode only) |
 | `--compact-cmd <text>` | `/compact` | Command injected to compact |
 | `--save-prompt <text>` | built-in | Prompt injected before compacting to persist state |
@@ -94,9 +98,15 @@ By default the wrapper reads Claude Code's session transcript (`~/.claude/projec
 | `--version`, `-V` | | Print the version |
 | `--help`, `-h` | | Show help |
 
-Every option also has a `CML_*` environment variable (`CML_IDLE_MS`, `CML_GRACE_MS`, `CML_SIZE_GATE`, `CML_COMPACT_CMD`, `CML_SAVE_PROMPT`, `CML_NO_TRANSCRIPT`, `CML_VERBOSE`).
+Every option also has a `CML_*` environment variable (`CML_TTL`, `CML_IDLE_MS`, `CML_GRACE_MS`, `CML_SIZE_GATE`, `CML_COMPACT_CMD`, `CML_SAVE_PROMPT`, `CML_NO_TRANSCRIPT`, `CML_VERBOSE`).
 
 Tune `--size-gate` to the context size where a cold resume actually starts to hurt for you. A good anchor is your own typical post-compact context: if a fresh session settles around, say, 180k tokens, set the gate near there so only sessions large enough to be worth it get banked. The `100000` default is a conservative floor.
+
+### Cache TTL
+
+The idle and grace windows are derived from the prompt-cache TTL so the tool fires while the cache is still warm (idle = 80% of the TTL, grace = 6x it). The TTL is resolved in this order: `--ttl` / `CML_TTL`, then `FORCE_PROMPT_CACHING_5M=1` (→ 5m), then `ENABLE_PROMPT_CACHING_1H=1` (→ 1h), then a detected API-key / Bedrock / Vertex / Foundry auth (→ 5m), else the **1-hour** default. Run with `--verbose` to see which one was chosen. Explicit `--idle` / `--grace` always win over the derived values.
+
+Detection is best-effort. If a subscription exceeds its plan limit mid-session, Claude Code silently drops the cache to 5 minutes and the tool cannot see it — pass `--ttl 5m` if you know your cache is short. If you also export `ANTHROPIC_API_KEY` while signed in on a subscription, the tool assumes 5 minutes and compacts earlier than necessary; pass `--ttl 1h` to override.
 
 ## Limitations
 
@@ -105,6 +115,13 @@ Tune `--size-gate` to the context size where a cold resume actually starts to hu
 - **Deferral is conservative on purpose.** Anything the wrapper cannot prove about the composer (a paste, a history key, a possible voice transcript) parks the compaction until your next submit. A skipped compaction costs a little money; a wrong injection could submit garbage into your session. There is no safe way to blindly clear an agent CLI's composer from outside (in Claude Code, single Esc does not clear, and double-Esc on an empty composer opens the rewind picker), so the wrapper never tries.
 
 ## Changelog
+
+### 0.3.0
+
+- **New: the idle timer is now cache-TTL aware and defaults to a 1-hour cache.** Claude Code uses a 1-hour prompt cache on a Claude subscription (and 5 minutes on an API key / Bedrock / Vertex / Foundry). The idle and grace windows now derive from the TTL (idle = 80% of TTL, grace = 6x TTL), so a subscription session is no longer compacted ~56 minutes early.
+- **New: `--ttl <5m|1h|seconds>` / `CML_TTL`.** The TTL is also auto-detected from `FORCE_PROMPT_CACHING_5M`, `ENABLE_PROMPT_CACHING_1H`, and the presence of an API key (`ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` / `CLAUDE_CODE_USE_BEDROCK` / `CLAUDE_CODE_USE_VERTEX` / `CLAUDE_CODE_USE_FOUNDRY`). `--ttl` parsing is strict — only `5m`, `1h`, or a whole number of seconds — so a typo can't select a near-zero timer.
+- **Behavior change:** with nothing configured and no 5-minute signal detected, the default idle is now 48 minutes (was effectively 4). API-key users who export `ANTHROPIC_API_KEY` keep the 5-minute timing automatically; on other 5-minute setups pass `--ttl 5m`. Explicit `--idle` / `--grace` / `CML_IDLE_MS` / `CML_GRACE_MS` are unchanged and still win.
+- Detection is best-effort and can't observe a mid-session subscription overage dropping the cache to 5 minutes; pass `--ttl 5m` if you know your cache is short.
 
 ### 0.2.2
 
